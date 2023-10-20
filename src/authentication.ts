@@ -1,10 +1,5 @@
 import { browser } from "./init.ts";
 
-export interface UserAuth {
-  userName: string;
-  password: string;
-}
-
 export const AuthenticateUser = async (): Promise<void> => {
   console.log("Authenticating User");
   const page = await browser.newPage();
