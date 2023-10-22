@@ -1,12 +1,19 @@
-import { GetFavorites, ShopgoodwillFavorite } from "./favorites.ts";
-
+import dotenv from "dotenv";
+import Shopgoodwill from "shopgoodwill-ts-api";
 import ical from "ical-generator";
 import http from "node:http";
 
-export const ServeIcal = async () => {
+dotenv.config();
+
+(async () => {
   if (!process.env.ICAL_UNIQUE_URL) {
     throw new Error("You must set ICAL_UNIQUE_URL");
   }
+
+  const api = new Shopgoodwill({
+    encryptedUsername: process.env.SHOPGOODWILL_USERNAME,
+    encryptedPassword: process.env.SHOPGOODWILL_PASSWORD,
+  });
 
   const port = process.env.ICAL_PORT ? parseInt(process.env.ICAL_PORT) : 3000;
   const url = process.env.ICAL_URL || "127.0.0.1";
@@ -16,7 +23,8 @@ export const ServeIcal = async () => {
       if (req.url === "/" + process.env.ICAL_UNIQUE_URL) {
         console.log(`Valid incoming request, getting favorites...`);
         (async () => {
-          const favorites: ShopgoodwillFavorite[] = await GetFavorites();
+          await api.authenticate();
+          const favorites = await api.get_favorites("all");
           const calendar = ical({
             name: `${process.env.SHOPGOODWILL_USERNAME} Shopgoodwill Favorites`,
           });
@@ -42,4 +50,4 @@ export const ServeIcal = async () => {
         `iCal Feed Served at http://${url}:${port}/${process.env.ICAL_UNIQUE_URL}`
       );
     });
-};
+})();
