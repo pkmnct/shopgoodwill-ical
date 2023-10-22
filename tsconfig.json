@@ -10,9 +10,7 @@
     "strict": true,
     "esModuleInterop": true,
     "resolveJsonModule": true,
-    "moduleResolution": "Node",
-    "allowImportingTsExtensions": true,
-    "noEmit": true
+    "moduleResolution": "Node"
   },
   "include": ["./"]
 }
