@@ -26,7 +26,7 @@ dotenv.config();
           await api.authenticate();
           const favorites = await api.get_favorites("all");
           const calendar = ical({
-            name: `${process.env.SHOPGOODWILL_USERNAME} Shopgoodwill Favorites`,
+            name: `ShopGoodwill Favorites`,
           });
 
           favorites.forEach((favorite) => {
