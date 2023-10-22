@@ -7,10 +7,12 @@
     "declarationMap": true,
     "sourceMap": true,
     "rootDir": "./",
+    "outDir": "./",
     "strict": true,
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "moduleResolution": "Node"
   },
-  "include": ["./"]
+  "include": ["./"],
+  "exclude": []
 }

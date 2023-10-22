@@ -1,5 +1,7 @@
 # Ignore compiled code
-dist
+*.d.ts
+*.js
+*.map
 
 # ------------- Defaults ------------- #
 
