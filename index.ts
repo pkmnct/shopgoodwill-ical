@@ -27,6 +27,7 @@ dotenv.config();
           const favorites = await api.get_favorites("all");
           const calendar = ical({
             name: `ShopGoodwill Favorites`,
+            timezone: "America/Los_Angeles",
           });
 
           favorites.forEach((favorite) => {
