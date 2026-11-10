@@ -1,3 +1,49 @@
 # Shopgoodwill Favorites iCal Feed
 
 Serve an iCal feed of your Shopgoodwill favorites to be consumed in your calendar of choice.
+
+## Configuration
+
+Set through environment variables (a `.env` file is read by `npm run dev` only):
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `ICAL_UNIQUE_URL` | required | Secret path the feed is served at (`/<ICAL_UNIQUE_URL>`). It is the only thing protecting the feed, so use a long random value, for example `openssl rand -hex 32`. |
+| `SHOPGOODWILL_USERNAME` | | Your pre-encrypted Shopgoodwill username (see [shopgoodwill-ts-api](https://github.com/pkmnct/shopgoodwill-ts-api)). |
+| `SHOPGOODWILL_PASSWORD` | | Your pre-encrypted Shopgoodwill password. Treat it like the password itself. |
+| `ICAL_URL` | `127.0.0.1` | Address to listen on. Use `0.0.0.0` in a container. |
+| `ICAL_PORT` | `3000` | Port to listen on. |
+| `ICAL_CACHE_SECONDS` | `300` | How long a built feed is reused before Shopgoodwill is asked again. |
+
+The server speaks plain HTTP. Put it behind a reverse proxy that terminates TLS; the secret path must not travel unencrypted.
+
+Its only outbound connection is HTTPS to `buyerapi.shopgoodwill.com`.
+
+## Docker
+
+```sh
+docker run -d --name shopgoodwill-ical \
+  --read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges:true \
+  --env-file .env -e ICAL_URL=0.0.0.0 -p 127.0.0.1:3000:3000 \
+  pkmnct/shopgoodwill-ical:latest
+```
+
+The image is distroless (no shell or package manager), runs as a non-root user (uid 65532) and needs no writable filesystem. It is built for amd64 and arm64, and rebuilt every week so base-image security patches arrive without a code change.
+
+## Development
+
+Requires Node 24 or newer.
+
+```sh
+npm ci
+npm run dev        # run index.ts directly, reading .env
+npm run lint
+npm run typecheck
+npm run docker:build && scripts/smoke-test.sh
+```
+
+## Automation
+
+- **CI** (`.github/workflows/ci.yml`): lint, type-check, build, `npm audit` of production dependencies, and an image build with a smoke test on every pull request and push to `main`.
+- **Publish** (`.github/workflows/publish.yml`): builds, smoke-tests and pushes `pkmnct/shopgoodwill-ical:latest` plus a dated tag on every push to `main`, every Wednesday, and on demand. Needs the repository secrets `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN`.
+- **Dependabot** (`.github/dependabot.yml`): weekly grouped updates for npm, the Docker base image and GitHub Actions. Patch and minor npm and Docker updates merge themselves once CI passes; this relies on branch protection requiring the CI checks. Those merges do not start a publish run by themselves (GitHub does not trigger workflows from its own token), so they ship with the next weekly rebuild.

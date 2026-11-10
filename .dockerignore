@@ -1,2 +1,6 @@
-node_modules
-npm-debug.log
+# Only the files the build needs are let through
+*
+!package.json
+!package-lock.json
+!tsconfig.json
+!index.ts
