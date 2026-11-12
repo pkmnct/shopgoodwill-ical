@@ -1,7 +1,10 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import http from "node:http";
 import { buildCalendar, cacheSecondsFrom } from "./feed.js";
-import Shopgoodwill from "shopgoodwill-ts-api";
+import Shopgoodwill, {
+  ShopgoodwillAuthError,
+  ShopgoodwillUnavailableError,
+} from "shopgoodwill-ts-api";
 
 const secretPath = process.env.ICAL_UNIQUE_URL;
 if (!secretPath) {
@@ -20,14 +23,6 @@ const cacheSeconds = cacheSecondsFrom(process.env.ICAL_CACHE_SECONDS);
 const errorMessage = (error: unknown) =>
   error instanceof Error ? error.message : String(error);
 
-// shopgoodwill-ts-api starts a login from its constructor without awaiting it,
-// so a failed login (bad credentials, ShopGoodwill unreachable) surfaces as an
-// unhandled rejection. Log it instead of letting it kill the process: every
-// feed request authenticates again and reports its own failure.
-process.on("unhandledRejection", (reason) => {
-  console.error("Unhandled rejection:", errorMessage(reason));
-});
-
 const api = new Shopgoodwill({
   encryptedUsername: process.env.SHOPGOODWILL_USERNAME,
   encryptedPassword: process.env.SHOPGOODWILL_PASSWORD,
@@ -42,12 +37,7 @@ const isFeedPath = (path: string | undefined) =>
 
 const buildFeed = async (): Promise<string> => {
   await api.authenticate();
-  const favorites = await api.get_favorites("all");
-  if (!Array.isArray(favorites)) {
-    throw new Error("ShopGoodwill did not return a list of favorites");
-  }
-
-  return buildCalendar(favorites);
+  return buildCalendar(await api.get_favorites("all"));
 };
 
 // Each feed build is a login check plus a favorites request to ShopGoodwill.
@@ -90,7 +80,22 @@ const server = http.createServer((req, res) => {
       return;
     })
     .catch((error: unknown) => {
-      console.error("Could not build the feed:", errorMessage(error));
+      // Always 502, whatever the cause: calendar apps then keep the events
+      // they have, where a 401 could make them prompt or drop the feed. The
+      // log says which it was.
+      if (error instanceof ShopgoodwillAuthError) {
+        console.error(
+          "ShopGoodwill refused the login. Check SHOPGOODWILL_USERNAME and SHOPGOODWILL_PASSWORD:",
+          errorMessage(error)
+        );
+      } else if (error instanceof ShopgoodwillUnavailableError) {
+        console.error(
+          "ShopGoodwill is unreachable or failing; will try again on the next request:",
+          errorMessage(error)
+        );
+      } else {
+        console.error("Could not build the feed:", errorMessage(error));
+      }
       res.writeHead(502, { "Content-Type": "text/plain; charset=utf-8" });
       res.end("Could not load favorites from ShopGoodwill\n");
     });

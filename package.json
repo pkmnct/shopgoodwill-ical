@@ -15,7 +15,7 @@
     },
     "dependencies": {
         "ical-generator": "^11.1.3",
-        "shopgoodwill-ts-api": "^0.1.4"
+        "shopgoodwill-ts-api": "^1.0.0"
     },
     "devDependencies": {
         "@eslint/js": "^10.0.1",
