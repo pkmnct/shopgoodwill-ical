@@ -8,7 +8,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --ignore-scripts
 
-COPY tsconfig.json index.ts ./
+COPY tsconfig.json index.ts feed.ts ./
 RUN npm run build && npm prune --omit=dev --ignore-scripts
 
 # Distroless: Node and its runtime libraries only. No shell, no package manager,
@@ -19,7 +19,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 COPY --from=build /app/node_modules ./node_modules
-COPY --from=build /app/package.json /app/index.js ./
+COPY --from=build /app/package.json /app/index.js /app/feed.js ./
 
 EXPOSE 3000
 

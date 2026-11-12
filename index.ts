@@ -1,6 +1,6 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import http from "node:http";
-import ical from "ical-generator";
+import { buildCalendar } from "./feed.js";
 import Shopgoodwill from "shopgoodwill-ts-api";
 
 const secretPath = process.env.ICAL_UNIQUE_URL;
@@ -49,23 +49,7 @@ const buildFeed = async (): Promise<string> => {
     throw new Error("ShopGoodwill did not return a list of favorites");
   }
 
-  const calendar = ical({
-    name: `ShopGoodwill Favorites`,
-    timezone: "America/Los_Angeles",
-  });
-
-  favorites.forEach((favorite) => {
-    calendar.createEvent({
-      // A stable id lets calendar apps update an event instead of duplicating it
-      id: `shopgoodwill-${favorite.itemId}`,
-      start: favorite.endTime,
-      end: favorite.endTime,
-      summary: favorite.title,
-      description: `This item is ending on Goodwill at this time. Make sure to set a notification. The item is here: https://shopgoodwill.com/item/${favorite.itemId}`,
-    });
-  });
-
-  return calendar.toString();
+  return buildCalendar(favorites);
 };
 
 // Each feed build is a login check plus a favorites request to ShopGoodwill.

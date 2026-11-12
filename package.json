@@ -27,6 +27,7 @@
     },
     "scripts": {
         "build": "tsc",
+        "test": "tsc && node --test \"*.test.js\"",
         "typecheck": "tsc --noEmit",
         "lint": "eslint .",
         "dev": "node --env-file-if-exists=.env index.ts",
