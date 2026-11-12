@@ -1,6 +1,6 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import http from "node:http";
-import { buildCalendar, cacheSecondsFrom } from "./feed.js";
+import { buildFeed, cacheSecondsFrom, LoginRefusedError } from "./feed.js";
 import { createFeedCache } from "./feedCache.js";
 import Shopgoodwill, {
   ShopgoodwillAuthError,
@@ -43,26 +43,27 @@ const expectedPath = sha256("/" + secretPath);
 const isFeedPath = (path: string | undefined) =>
   path !== undefined && timingSafeEqual(sha256(path), expectedPath);
 
-const buildFeed = async (): Promise<string> => {
-  await api.authenticate();
-  return buildCalendar(await api.get_favorites("all"));
-};
-
 // A wrong password must not become a login attempt on every poll (that risks
-// a lockout), so a refused login is held for longer than an outage.
+// a lockout), so a refused login is held for longer than anything else. A 401
+// or 403 on the favorites request is not one: it gets the short hold.
 const AUTH_FAILURE_SECONDS = 15 * 60;
 const OTHER_FAILURE_SECONDS = 60;
 
-const getFeed = createFeedCache(buildFeed, {
+const getFeed = createFeedCache(() => buildFeed(api), {
   cacheSeconds,
   failureSeconds: (error) =>
-    error instanceof ShopgoodwillAuthError
+    error instanceof LoginRefusedError
       ? AUTH_FAILURE_SECONDS
       : OTHER_FAILURE_SECONDS,
   onFailure: (error) => {
-    if (error instanceof ShopgoodwillAuthError) {
+    if (error instanceof LoginRefusedError) {
       console.error(
         `ShopGoodwill refused the login. Check SHOPGOODWILL_USERNAME and SHOPGOODWILL_PASSWORD; not trying again for ${AUTH_FAILURE_SECONDS / 60} minutes:`,
+        errorMessage(error.cause)
+      );
+    } else if (error instanceof ShopgoodwillAuthError) {
+      console.error(
+        `ShopGoodwill rejected the session after signing in; signing in again in ${OTHER_FAILURE_SECONDS} seconds:`,
         errorMessage(error)
       );
     } else if (error instanceof ShopgoodwillUnavailableError) {

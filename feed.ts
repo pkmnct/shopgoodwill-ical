@@ -1,4 +1,5 @@
 import ical from "ical-generator";
+import { ShopgoodwillAuthError } from "shopgoodwill-ts-api";
 
 /** The parts of a favorite the calendar needs. */
 export interface FeedFavorite {
@@ -63,4 +64,37 @@ export function cacheSecondsFrom(raw: string | undefined): number {
     return DEFAULT_CACHE_SECONDS;
   }
   return value;
+}
+
+/** The login request itself was refused: the stored credentials are wrong (or blocked). */
+export class LoginRefusedError extends Error {
+  constructor(cause: unknown) {
+    super("ShopGoodwill refused the login", { cause });
+    this.name = "LoginRefusedError";
+  }
+}
+
+/** The two client calls a feed build makes. */
+export interface FeedApi {
+  authenticate: () => Promise<unknown>;
+  get_favorites: (type: "all") => Promise<FeedFavorite[]>;
+}
+
+/**
+ * Signs in if needed and builds the calendar. Only an auth error from
+ * `authenticate()` is a refused login (it reuses a valid token and otherwise
+ * logs in, so that is the login request answering no). The library raises the
+ * same class for any 401 or 403, so one from the favorites request is left as
+ * it is: the credentials may be fine and the next attempt signs in again.
+ */
+export async function buildFeed(api: FeedApi): Promise<string> {
+  try {
+    await api.authenticate();
+  } catch (error) {
+    if (error instanceof ShopgoodwillAuthError) {
+      throw new LoginRefusedError(error);
+    }
+    throw error;
+  }
+  return buildCalendar(await api.get_favorites("all"));
 }

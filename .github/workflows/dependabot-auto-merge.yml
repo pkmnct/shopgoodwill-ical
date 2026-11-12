@@ -1,8 +1,8 @@
 name: Dependabot auto-merge
 
-# Turns on GitHub's auto-merge for Dependabot's patch and minor npm and Docker
-# updates. GitHub then merges the PR only once the required CI checks pass, so
-# this is safe only while branch protection on main requires those checks.
+# Turns on GitHub's auto-merge for Dependabot's patch and minor npm updates.
+# GitHub then merges the PR only once the required CI checks pass, so this is
+# safe only while branch protection on main requires those checks.
 # Major updates and GitHub Actions updates are left for a person to review.
 on: pull_request
 

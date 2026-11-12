@@ -23,19 +23,10 @@ updates:
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
 
-  - package-ecosystem: docker
-    directory: /
-    schedule:
-      interval: weekly
-      day: monday
-    # These updates can auto-merge too, so they get the same waiting period
-    cooldown:
-      default-days: 5
-    ignore:
-      # The build stage must stay on the same Node major as the distroless
-      # runtime stage, whose version is part of the image name. Move both by hand.
-      - dependency-name: node
-        update-types: ["version-update:semver-major"]
+  # No docker ecosystem: the Dockerfile's images use floating tags
+  # (node:26-trixie-slim, distroless nodejs26) with no version Dependabot could
+  # bump below a major. Their patches arrive through the weekly rebuild in
+  # publish.yml; a new Node major is moved by hand in both stages.
 
   - package-ecosystem: github-actions
     directory: /

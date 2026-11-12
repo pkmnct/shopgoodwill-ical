@@ -1,6 +1,15 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { buildCalendar, cacheSecondsFrom } from "./feed.js";
+import {
+  ShopgoodwillAuthError,
+  ShopgoodwillUnavailableError,
+} from "shopgoodwill-ts-api";
+import {
+  buildCalendar,
+  buildFeed,
+  cacheSecondsFrom,
+  LoginRefusedError,
+} from "./feed.js";
 
 // 18:07 Pacific on 2026-11-20 (item 283669554), as shopgoodwill-ts-api returns it
 const endTime = new Date("2026-11-21T02:07:00.000Z");
@@ -70,5 +79,44 @@ describe("cacheSecondsFrom", () => {
     for (const bad of ["five", "-1", "10s", "Infinity"]) {
       assert.equal(cacheSecondsFrom(bad), 300, bad);
     }
+  });
+});
+
+describe("buildFeed", () => {
+  const api = (overrides: Partial<Parameters<typeof buildFeed>[0]> = {}) => ({
+    authenticate: async () => undefined,
+    get_favorites: async () => [favorite],
+    ...overrides,
+  });
+  const failing = (error: Error) => async () => {
+    throw error;
+  };
+
+  it("signs in and builds the calendar", async () => {
+    assert.match(await buildFeed(api()), /UID:shopgoodwill-283669554/);
+  });
+
+  it("calls an auth error from authenticate() a refused login", async () => {
+    const cause = new ShopgoodwillAuthError("Login failed: Shopgoodwill returned HTTP 401", 401);
+    await assert.rejects(
+      buildFeed(api({ authenticate: failing(cause) })),
+      (error: unknown) => error instanceof LoginRefusedError && error.cause === cause
+    );
+  });
+
+  it("does not call a 401 or 403 on the favorites request a refused login", async () => {
+    const error = new ShopgoodwillAuthError("Could not load favorites: Shopgoodwill returned HTTP 403", 403);
+    await assert.rejects(
+      buildFeed(api({ get_favorites: failing(error) })),
+      (thrown: unknown) => thrown === error
+    );
+  });
+
+  it("passes an outage during sign-in through unchanged", async () => {
+    const error = new ShopgoodwillUnavailableError("Could not reach Shopgoodwill");
+    await assert.rejects(
+      buildFeed(api({ authenticate: failing(error) })),
+      (thrown: unknown) => thrown === error
+    );
   });
 });

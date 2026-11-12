@@ -11,7 +11,7 @@
         "url": "https://github.com/pkmnct/shopgoodwill-ical/issues"
     },
     "engines": {
-        "node": ">=24"
+        "node": ">=26"
     },
     "dependencies": {
         "ical-generator": "^11.1.3",
