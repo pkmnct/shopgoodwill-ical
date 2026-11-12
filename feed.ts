@@ -42,3 +42,25 @@ export function buildCalendar(favorites: FeedFavorite[]): string {
 
   return calendar.toString();
 }
+
+export const DEFAULT_CACHE_SECONDS = 300;
+
+/**
+ * ICAL_CACHE_SECONDS as a number. Anything that is not a number of seconds
+ * (zero or more) falls back to the default with a warning: a NaN here would
+ * silently switch the cache off and send every request to ShopGoodwill.
+ */
+export function cacheSecondsFrom(raw: string | undefined): number {
+  const text = raw?.trim();
+  if (!text) {
+    return DEFAULT_CACHE_SECONDS;
+  }
+  const value = Number(text);
+  if (!Number.isFinite(value) || value < 0) {
+    console.warn(
+      `ICAL_CACHE_SECONDS must be a number of seconds (got ${JSON.stringify(text)}); using ${DEFAULT_CACHE_SECONDS}.`
+    );
+    return DEFAULT_CACHE_SECONDS;
+  }
+  return value;
+}

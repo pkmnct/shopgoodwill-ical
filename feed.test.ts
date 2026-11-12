@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { buildCalendar } from "./feed.js";
+import { buildCalendar, cacheSecondsFrom } from "./feed.js";
 
 // 18:07 Pacific on 2026-11-20 (item 283669554), as shopgoodwill-ts-api returns it
 const endTime = new Date("2026-11-21T02:07:00.000Z");
@@ -52,5 +52,23 @@ describe("buildCalendar", () => {
     const body = buildCalendar([]);
     assert.match(body, /BEGIN:VCALENDAR/);
     assert.doesNotMatch(body, /BEGIN:VEVENT/);
+  });
+});
+
+describe("cacheSecondsFrom", () => {
+  it("uses the default when unset or blank", () => {
+    assert.equal(cacheSecondsFrom(undefined), 300);
+    assert.equal(cacheSecondsFrom("  "), 300);
+  });
+
+  it("accepts a number of seconds, including 0 to switch the cache off", () => {
+    assert.equal(cacheSecondsFrom("60"), 60);
+    assert.equal(cacheSecondsFrom("0"), 0);
+  });
+
+  it("falls back to the default for anything else", () => {
+    for (const bad of ["five", "-1", "10s", "Infinity"]) {
+      assert.equal(cacheSecondsFrom(bad), 300, bad);
+    }
   });
 });

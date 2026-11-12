@@ -13,7 +13,7 @@ Set through environment variables (a `.env` file is read by `npm run dev` only):
 | `SHOPGOODWILL_PASSWORD` | | Your pre-encrypted Shopgoodwill password. Treat it like the password itself. |
 | `ICAL_URL` | `127.0.0.1` | Address to listen on. Use `0.0.0.0` in a container. |
 | `ICAL_PORT` | `3000` | Port to listen on. |
-| `ICAL_CACHE_SECONDS` | `300` | How long a built feed is reused before Shopgoodwill is asked again. |
+| `ICAL_CACHE_SECONDS` | `300` | How long a built feed is reused before Shopgoodwill is asked again. `0` turns the cache off; anything that is not a number uses the default. |
 
 The server speaks plain HTTP. Put it behind a reverse proxy that terminates TLS; the secret path must not travel unencrypted.
 
@@ -36,7 +36,7 @@ Requires Node 24 or newer.
 
 ```sh
 npm ci
-npm run dev        # run index.ts directly, reading .env
+npm run dev        # compile, then run, reading .env
 npm run lint
 npm run typecheck
 npm run docker:build && scripts/smoke-test.sh

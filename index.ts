@@ -1,6 +1,6 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import http from "node:http";
-import { buildCalendar } from "./feed.js";
+import { buildCalendar, cacheSecondsFrom } from "./feed.js";
 import Shopgoodwill from "shopgoodwill-ts-api";
 
 const secretPath = process.env.ICAL_UNIQUE_URL;
@@ -15,9 +15,7 @@ if (secretPath.length < 16) {
 
 const port = process.env.ICAL_PORT ? parseInt(process.env.ICAL_PORT, 10) : 3000;
 const host = process.env.ICAL_URL || "127.0.0.1";
-const cacheSeconds = process.env.ICAL_CACHE_SECONDS
-  ? parseInt(process.env.ICAL_CACHE_SECONDS, 10)
-  : 300;
+const cacheSeconds = cacheSecondsFrom(process.env.ICAL_CACHE_SECONDS);
 
 const errorMessage = (error: unknown) =>
   error instanceof Error ? error.message : String(error);

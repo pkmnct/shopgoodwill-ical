@@ -30,7 +30,7 @@
         "test": "tsc && node --test \"*.test.js\"",
         "typecheck": "tsc --noEmit",
         "lint": "eslint .",
-        "dev": "node --env-file-if-exists=.env index.ts",
+        "dev": "tsc && node --env-file-if-exists=.env index.js",
         "start": "node index.js",
         "docker:build": "docker build -t shopgoodwill-ical .",
         "docker:push": "docker buildx build --platform linux/amd64,linux/arm64 -t pkmnct/shopgoodwill-ical:latest --push ."
