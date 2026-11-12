@@ -18,7 +18,8 @@ updates:
         dependency-type: development
         update-types: [minor, patch]
     ignore:
-      # Tracks the Node major in the Dockerfile, not the newest release
+      # Tracks the Node major in the Dockerfile (26), not the newest release.
+      # Move it by hand together with the two images there.
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
 
@@ -27,6 +28,9 @@ updates:
     schedule:
       interval: weekly
       day: monday
+    # These updates can auto-merge too, so they get the same waiting period
+    cooldown:
+      default-days: 5
     ignore:
       # The build stage must stay on the same Node major as the distroless
       # runtime stage, whose version is part of the image name. Move both by hand.

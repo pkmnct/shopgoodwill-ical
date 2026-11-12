@@ -19,7 +19,7 @@
     },
     "devDependencies": {
         "@eslint/js": "^10.0.1",
-        "@types/node": "^24.0.0",
+        "@types/node": "^26.0.0",
         "eslint": "^10.14.0",
         "eslint-plugin-promise": "^7.3.0",
         "typescript": "^6.0.3",
@@ -27,14 +27,14 @@
     },
     "scripts": {
         "build": "tsc",
-        "test": "tsc && node --test \"*.test.js\"",
+        "test": "tsc && node --test \"dist/*.test.js\"",
         "typecheck": "tsc --noEmit",
         "lint": "eslint .",
-        "dev": "tsc && node --env-file-if-exists=.env index.js",
-        "start": "node index.js",
+        "dev": "tsc && node --env-file-if-exists=.env dist/index.js",
+        "start": "node dist/index.js",
         "docker:build": "docker build -t shopgoodwill-ical .",
         "docker:push": "docker buildx build --platform linux/amd64,linux/arm64 -t pkmnct/shopgoodwill-ical:latest --push ."
     },
-    "main": "index.js",
+    "main": "dist/index.js",
     "type": "module"
 }

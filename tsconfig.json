@@ -5,9 +5,8 @@
     "moduleResolution": "NodeNext",
     "lib": ["ES2023"],
     "types": ["node"],
-    "sourceMap": true,
     "rootDir": "./",
-    "outDir": "./",
+    "outDir": "./dist",
     "strict": true,
     "skipLibCheck": true,
     "esModuleInterop": true

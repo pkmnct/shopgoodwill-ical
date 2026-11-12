@@ -34,7 +34,7 @@ jobs:
       # ships base-image security patches (CI already reports it)
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 24
+          node-version: 26 # the Node major the image runs
           cache: npm
       - run: npm ci --ignore-scripts
       - run: npm run lint

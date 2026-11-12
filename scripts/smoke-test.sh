@@ -50,8 +50,11 @@ expect() {
   fi
 }
 
+# Logs are read into a variable first: with pipefail, "docker logs | grep -q"
+# can report failure on a match, when grep exits early and docker gets SIGPIPE
 for _ in $(seq 1 20); do
-  docker logs "$name" 2>&1 | grep -q "listening" && break
+  logs="$(docker logs "$name" 2>&1)"
+  grep -q "listening" <<<"$logs" && break
   sleep 0.5
 done
 
@@ -62,7 +65,8 @@ expect "POST to the feed is dropped" "closed" "$(probe POST "/$secret")"
 expect "feed path is routed, upstream unreachable" "502" "$(probe GET "/$secret")"
 expect "still running after a failed feed" "true" "$(docker inspect -f '{{.State.Running}}' "$name")"
 
-if docker logs "$name" 2>&1 | grep -q "$secret"; then
+logs="$(docker logs "$name" 2>&1)"
+if grep -qF -- "$secret" <<<"$logs"; then
   echo "FAIL the secret path appears in the logs"
   exit 1
 fi

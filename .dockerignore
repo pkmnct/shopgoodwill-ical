@@ -3,5 +3,6 @@
 !package.json
 !package-lock.json
 !tsconfig.json
-!index.ts
-!feed.ts
+!*.ts
+# Tests are not built into the image
+*.test.ts

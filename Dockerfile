@@ -8,7 +8,9 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --ignore-scripts
 
-COPY tsconfig.json index.ts feed.ts ./
+# Every source file; .dockerignore keeps the tests out, so dist/ holds only
+# what runs
+COPY tsconfig.json *.ts ./
 RUN npm run build && npm prune --omit=dev --ignore-scripts
 
 # Distroless: Node and its runtime libraries only. No shell, no package manager,
@@ -19,9 +21,10 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 COPY --from=build /app/node_modules ./node_modules
-COPY --from=build /app/package.json /app/index.js /app/feed.js ./
+COPY --from=build /app/package.json ./
+COPY --from=build /app/dist ./dist
 
 EXPOSE 3000
 
 # The base image's entrypoint is node
-CMD ["index.js"]
+CMD ["dist/index.js"]

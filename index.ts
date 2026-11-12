@@ -1,6 +1,7 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import http from "node:http";
 import { buildCalendar, cacheSecondsFrom } from "./feed.js";
+import { createFeedCache } from "./feedCache.js";
 import Shopgoodwill, {
   ShopgoodwillAuthError,
   ShopgoodwillUnavailableError,
@@ -23,10 +24,17 @@ const cacheSeconds = cacheSecondsFrom(process.env.ICAL_CACHE_SECONDS);
 const errorMessage = (error: unknown) =>
   error instanceof Error ? error.message : String(error);
 
-const api = new Shopgoodwill({
-  encryptedUsername: process.env.SHOPGOODWILL_USERNAME,
-  encryptedPassword: process.env.SHOPGOODWILL_PASSWORD,
-});
+const encryptedUsername = process.env.SHOPGOODWILL_USERNAME;
+const encryptedPassword = process.env.SHOPGOODWILL_PASSWORD;
+if (!encryptedUsername || !encryptedPassword) {
+  const missing = [
+    !encryptedUsername && "SHOPGOODWILL_USERNAME",
+    !encryptedPassword && "SHOPGOODWILL_PASSWORD",
+  ].filter(Boolean);
+  throw new Error(`You must set ${missing.join(" and ")}`);
+}
+
+const api = new Shopgoodwill({ encryptedUsername, encryptedPassword });
 
 // Compare fixed-length digests so the comparison takes the same time whether
 // or not (and wherever) the requested path differs from the secret one.
@@ -40,23 +48,36 @@ const buildFeed = async (): Promise<string> => {
   return buildCalendar(await api.get_favorites("all"));
 };
 
-// Each feed build is a login check plus a favorites request to ShopGoodwill.
-// Share one build between concurrent requests and reuse it for a few minutes,
-// so calendar clients polling the feed cannot hammer the account.
-let cached: { body: string; expires: number } | undefined;
-let pending: Promise<string> | undefined;
+// A wrong password must not become a login attempt on every poll (that risks
+// a lockout), so a refused login is held for longer than an outage.
+const AUTH_FAILURE_SECONDS = 15 * 60;
+const OTHER_FAILURE_SECONDS = 60;
 
-const getFeed = async (): Promise<string> => {
-  if (cached && cached.expires > Date.now()) {
-    return cached.body;
-  }
-  pending ??= buildFeed().finally(() => {
-    pending = undefined;
-  });
-  const body = await pending;
-  cached = { body, expires: Date.now() + cacheSeconds * 1000 };
-  return body;
-};
+const getFeed = createFeedCache(buildFeed, {
+  cacheSeconds,
+  failureSeconds: (error) =>
+    error instanceof ShopgoodwillAuthError
+      ? AUTH_FAILURE_SECONDS
+      : OTHER_FAILURE_SECONDS,
+  onFailure: (error) => {
+    if (error instanceof ShopgoodwillAuthError) {
+      console.error(
+        `ShopGoodwill refused the login. Check SHOPGOODWILL_USERNAME and SHOPGOODWILL_PASSWORD; not trying again for ${AUTH_FAILURE_SECONDS / 60} minutes:`,
+        errorMessage(error)
+      );
+    } else if (error instanceof ShopgoodwillUnavailableError) {
+      console.error(
+        `ShopGoodwill is unreachable or failing; not trying again for ${OTHER_FAILURE_SECONDS} seconds:`,
+        errorMessage(error)
+      );
+    } else {
+      console.error(
+        `Could not build the feed; not trying again for ${OTHER_FAILURE_SECONDS} seconds:`,
+        errorMessage(error)
+      );
+    }
+  },
+});
 
 const server = http.createServer((req, res) => {
   if (!isFeedPath(req.url) || (req.method !== "GET" && req.method !== "HEAD")) {
@@ -79,23 +100,10 @@ const server = http.createServer((req, res) => {
       res.end(req.method === "HEAD" ? undefined : body);
       return;
     })
-    .catch((error: unknown) => {
+    .catch(() => {
       // Always 502, whatever the cause: calendar apps then keep the events
       // they have, where a 401 could make them prompt or drop the feed. The
-      // log says which it was.
-      if (error instanceof ShopgoodwillAuthError) {
-        console.error(
-          "ShopGoodwill refused the login. Check SHOPGOODWILL_USERNAME and SHOPGOODWILL_PASSWORD:",
-          errorMessage(error)
-        );
-      } else if (error instanceof ShopgoodwillUnavailableError) {
-        console.error(
-          "ShopGoodwill is unreachable or failing; will try again on the next request:",
-          errorMessage(error)
-        );
-      } else {
-        console.error("Could not build the feed:", errorMessage(error));
-      }
+      // failure itself is logged once, when the build fails.
       res.writeHead(502, { "Content-Type": "text/plain; charset=utf-8" });
       res.end("Could not load favorites from ShopGoodwill\n");
     });
