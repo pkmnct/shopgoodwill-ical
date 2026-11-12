@@ -39,8 +39,13 @@ describe("buildCalendar", () => {
     );
   });
 
-  it("refuses an invalid date", () => {
-    assert.throws(() => buildCalendar([{ ...favorite, endTime: new Date("nope") }]), /no usable end time/);
+  it("skips an item with an invalid date and keeps the rest", () => {
+    const body = buildCalendar([
+      { ...favorite, itemId: 1, endTime: new Date("nope") },
+      { ...favorite, itemId: 2 },
+    ]);
+    assert.doesNotMatch(body, /UID:shopgoodwill-1\b/);
+    assert.match(body, /UID:shopgoodwill-2\b/);
   });
 
   it("makes an empty calendar for no favorites", () => {

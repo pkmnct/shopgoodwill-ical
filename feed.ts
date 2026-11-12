@@ -20,10 +20,15 @@ export function buildCalendar(favorites: FeedFavorite[]): string {
   for (const favorite of favorites) {
     // An offset-less string would be read in this server's timezone (UTC in the
     // container), which is wrong by hours. shopgoodwill-ts-api 1.x returns Dates.
-    if (!(favorite.endTime instanceof Date) || Number.isNaN(favorite.endTime.getTime())) {
+    if (!(favorite.endTime instanceof Date)) {
       throw new Error(
-        `Item ${favorite.itemId} has no usable end time; shopgoodwill-ts-api 1.x or newer is required`
+        `Item ${favorite.itemId} has a non-Date end time; shopgoodwill-ts-api 1.x or newer is required`
       );
+    }
+    // One item with an unreadable time should not take the whole feed down
+    if (Number.isNaN(favorite.endTime.getTime())) {
+      console.warn(`Skipping item ${favorite.itemId}: unreadable end time`);
+      continue;
     }
     calendar.createEvent({
       // A stable id lets calendar apps update an event instead of duplicating it
