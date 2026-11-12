@@ -66,6 +66,21 @@ export function cacheSecondsFrom(raw: string | undefined): number {
   return value;
 }
 
+/**
+ * Whether a calendar app asking for `/<secret>` sends exactly that. The server
+ * compares the raw request URL, so a secret with characters a client
+ * percent-encodes (a space, a quote, non-ASCII), a "#" (never sent) or a ".."
+ * segment (resolved away) can never match.
+ */
+export function isUrlSafeSecret(secret: string): boolean {
+  try {
+    const url = new URL("http://localhost/" + secret);
+    return url.pathname + url.search === "/" + secret;
+  } catch {
+    return false;
+  }
+}
+
 /** The login request itself was refused: the stored credentials are wrong (or blocked). */
 export class LoginRefusedError extends Error {
   constructor(cause: unknown) {

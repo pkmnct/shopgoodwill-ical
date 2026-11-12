@@ -1,6 +1,11 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import http from "node:http";
-import { buildFeed, cacheSecondsFrom, LoginRefusedError } from "./feed.js";
+import {
+  buildFeed,
+  cacheSecondsFrom,
+  isUrlSafeSecret,
+  LoginRefusedError,
+} from "./feed.js";
 import { createFeedCache } from "./feedCache.js";
 import Shopgoodwill, {
   ShopgoodwillAuthError,
@@ -14,6 +19,12 @@ if (!secretPath) {
 if (secretPath.length < 16) {
   console.warn(
     "ICAL_UNIQUE_URL is shorter than 16 characters. It is the only thing protecting the feed, so use a long random value."
+  );
+}
+// A warning, not an error: a client that sends the path unencoded still works
+if (!isUrlSafeSecret(secretPath)) {
+  console.warn(
+    "ICAL_UNIQUE_URL has characters that calendar apps encode or drop in a URL (such as a space, a quote, # or non-ASCII), so their requests will not match and will be rejected. Use only letters, digits, - . _ and ~."
   );
 }
 

@@ -8,6 +8,7 @@ import {
   buildCalendar,
   buildFeed,
   cacheSecondsFrom,
+  isUrlSafeSecret,
   LoginRefusedError,
 } from "./feed.js";
 
@@ -78,6 +79,20 @@ describe("cacheSecondsFrom", () => {
   it("falls back to the default for anything else", () => {
     for (const bad of ["five", "-1", "10s", "Infinity"]) {
       assert.equal(cacheSecondsFrom(bad), 300, bad);
+    }
+  });
+});
+
+describe("isUrlSafeSecret", () => {
+  it("accepts secrets a client sends unchanged", () => {
+    for (const ok of ["3f9c2ab47d1e", "abc-DEF_123.~", "feeds/mine.ics", "a?key=b", "a%20b"]) {
+      assert.equal(isUrlSafeSecret(ok), true, ok);
+    }
+  });
+
+  it("rejects secrets a client would encode, drop or rewrite", () => {
+    for (const bad of ["two words", "caf\u00e9", 'say"hi"', "a#b", "a#", "../feed", "a\\b", "tab\there"]) {
+      assert.equal(isUrlSafeSecret(bad), false, bad);
     }
   });
 });
