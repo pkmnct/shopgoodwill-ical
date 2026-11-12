@@ -1,2 +1,8 @@
-node_modules
-npm-debug.log
+# Only the files the build needs are let through
+*
+!package.json
+!package-lock.json
+!tsconfig.json
+!*.ts
+# Tests are not built into the image
+*.test.ts
